@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+import os
 
 class PredictPipeline:
     def __init__(self, model_path, scaler_path=None):
