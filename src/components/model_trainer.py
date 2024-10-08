@@ -3,7 +3,7 @@ import sys
 from dataclasses import dataclass
 from sklearn.preprocessing import StandardScaler
 import joblib
-
+import pandas
 from sklearn.ensemble import (
     AdaBoostRegressor,
     GradientBoostingRegressor,
