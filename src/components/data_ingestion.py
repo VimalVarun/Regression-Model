@@ -1,3 +1,4 @@
+print("Data Ingestion script is running")
 import os
 import sys
 from src.exceptions import CustomException
@@ -11,8 +12,6 @@ from data_transformation import DataTransformation
 from data_transformation import DataTransformationConfig 
 
 from model_trainer import ModelTrainer
-from model_trainer import ModelTrainerConfig
-
 @dataclass
 class DataIngestionConfig:
     train_data_path: str = os.path.join("artifacts", "train.csv")
