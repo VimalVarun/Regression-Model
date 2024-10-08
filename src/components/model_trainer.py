@@ -1,6 +1,8 @@
 import os
 import sys
 from dataclasses import dataclass
+from sklearn.preprocessing import StandardScaler
+import joblib
 
 from sklearn.ensemble import (
     AdaBoostRegressor,
@@ -20,6 +22,7 @@ from src.utils import save_object, evaluate_models
 @dataclass
 class ModelTrainerConfig:
     trained_model_file_path = os.path.join("artifacts", "model.pkl")
+    scaler_file_path = os.path.join("artifacts", "scaler.pkl")  # Add scaler file path
 
 class ModelTrainer:
     def __init__(self):
@@ -35,14 +38,22 @@ class ModelTrainer:
                 test_array[:, -1]
             )
 
+            # Fit the scaler
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+
+            # Save the scaler
+            joblib.dump(scaler, self.model_trainer_config.scaler_file_path)
+
             models = {
                 "Random Forest": RandomForestRegressor(),
                 "Decision Tree": DecisionTreeRegressor(),
                 "Gradient Boosting": GradientBoostingRegressor(),
                 "Linear Regression": LinearRegression(),
-                "KNeighborsRegressor": KNeighborsRegressor(),  # Match key with params
+                "KNeighborsRegressor": KNeighborsRegressor(),
                 "XGBRegressor": XGBRegressor(),
-                "AdaBoostRegressor": AdaBoostRegressor(),  # Match key with params
+                "AdaBoostRegressor": AdaBoostRegressor(),
             }
 
             params = {
@@ -62,17 +73,17 @@ class ModelTrainer:
                     'learning_rate': [.1, .01, .05, .001],
                     'n_estimators': [8, 16, 32, 64, 128, 256]
                 },
-                "AdaBoostRegressor": {  # Changed key to match model name
+                "AdaBoostRegressor": {
                     'learning_rate': [.1, .01, 0.5, .001],
                     'n_estimators': [8, 16, 32, 64, 128, 256]
                 },
-                "KNeighborsRegressor": {  # Changed key to match model name
+                "KNeighborsRegressor": {
                     "n_neighbors": [3, 5, 7],
                     "weights": ["uniform", "distance"]
                 }
             }
 
-            model_report: dict = evaluate_models(X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, models=models, param=params)
+            model_report: dict = evaluate_models(X_train=X_train_scaled, y_train=y_train, X_test=X_test_scaled, y_test=y_test, models=models, param=params)
 
             # To get the best model score from dict
             best_model_score = max(sorted(model_report.values()))
@@ -92,7 +103,7 @@ class ModelTrainer:
                 obj=best_model
             )
 
-            predicted = best_model.predict(X_test)
+            predicted = best_model.predict(X_test_scaled)
             model_r2_score = sklearn_r2_score(y_test, predicted)
 
             return model_r2_score
