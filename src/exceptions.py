@@ -10,12 +10,13 @@ def error_message_detail(error, error_detail):
 
 
 class CustomException(Exception):
-    def __init__(self, error_message, error_detail):
+    def __init__(self, error_message: str, error_detail: sys):
         super().__init__(error_message)
-        self.error_message = error_message_detail(error_message, error_detail=error_detail)
-
+        self.error_message = error_message
+        self.error_detail = error_detail
+        
     def __str__(self):
-        return self.error_message
+        return f"Error occurred: {self.error_message}, Details: {self.error_detail}"
     
 
 if __name__ == "__main__":
