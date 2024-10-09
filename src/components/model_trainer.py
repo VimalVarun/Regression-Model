@@ -3,7 +3,7 @@ import sys
 from dataclasses import dataclass
 from sklearn.preprocessing import StandardScaler
 import joblib
-import pandas
+import pandas as pd
 from sklearn.ensemble import (
     AdaBoostRegressor,
     GradientBoostingRegressor,
@@ -21,8 +21,8 @@ from src.utils import save_object, evaluate_models
 
 @dataclass
 class ModelTrainerConfig:
-    trained_model_file_path = os.path.join("artifacts", "model.pkl")
-    scaler_file_path = os.path.join("artifacts", "scaler.pkl")  # Add scaler file path
+    trained_model_file_path = os.path.join("artifacts", "model.pkl")  # Path for the trained model
+    scaler_file_path = os.path.join("artifacts", "scaler.pkl")        # Path for the scaler
 
 class ModelTrainer:
     def __init__(self):
@@ -45,7 +45,9 @@ class ModelTrainer:
 
             # Save the scaler
             joblib.dump(scaler, self.model_trainer_config.scaler_file_path)
+            logging.info(f"Scaler saved to {self.model_trainer_config.scaler_file_path}")
 
+            # Define models
             models = {
                 "Random Forest": RandomForestRegressor(),
                 "Decision Tree": DecisionTreeRegressor(),
@@ -56,6 +58,7 @@ class ModelTrainer:
                 "AdaBoostRegressor": AdaBoostRegressor(),
             }
 
+            # Define hyperparameters for each model
             params = {
                 "Decision Tree": {
                     'criterion': ['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
@@ -83,26 +86,35 @@ class ModelTrainer:
                 }
             }
 
-            model_report: dict = evaluate_models(X_train=X_train_scaled, y_train=y_train, X_test=X_test_scaled, y_test=y_test, models=models, param=params)
+            # Evaluate models and get report
+            model_report: dict = evaluate_models(
+                X_train=X_train_scaled,
+                y_train=y_train,
+                X_test=X_test_scaled,
+                y_test=y_test,
+                models=models,
+                param=params
+            )
 
-            # To get the best model score from dict
+            # Get the best model score from the report
             best_model_score = max(sorted(model_report.values()))
 
-            # To get the best model name from dict
+            # Get the best model name from the report
             best_model_name = list(model_report.keys())[list(model_report.values()).index(best_model_score)]
-
             best_model = models[best_model_name]
 
             if best_model_score < 0.6:
-                raise CustomException("No best model found")
+                raise CustomException("No suitable model found")
 
             logging.info(f"Best model found: {best_model_name} with score: {best_model_score}")
 
+            # Save the best model
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
                 obj=best_model
             )
 
+            # Make predictions on the test set
             predicted = best_model.predict(X_test_scaled)
             model_r2_score = sklearn_r2_score(y_test, predicted)
 
@@ -110,3 +122,4 @@ class ModelTrainer:
 
         except Exception as e:
             raise CustomException(e, sys)
+
