@@ -1,31 +1,36 @@
 import streamlit as st
+import numpy as np
+import pandas as pd
 from src.pipeline.predict_pipeline import PredictPipeline
 
-# Load the trained model and scaler
-try:
-    predict_pipeline = PredictPipeline(model_path='artifacts/model.pkl', scaler_path='artifacts/scaler.pkl')
-except Exception as e:
-    st.error(f"Error loading model or scaler: {e}")
+# Instantiate the prediction pipeline
+predict_pipeline = PredictPipeline()
 
-# Title of the app
-st.title("Energy Production Prediction")
+# Streamlit App
+st.title('Energy Production Prediction App')
 
-# User input for features with correct numeric types
-temperature = st.number_input("Temperature (°C)", min_value=-30.0, max_value=50.0, value=25.0)
-exhaust_vacuum = st.number_input("Exhaust Vacuum (mmHg)", min_value=0.0, max_value=100.0, value=50.0)
-amb_pressure = st.number_input("Ambient Pressure (kPa)", min_value=0.0, max_value=1033.3, value=1009.1)
-r_humidity = st.number_input("Relative Humidity (%)", min_value=0.0, max_value=100.0, value=50.0)
+# Input sliders for each independent feature
+temperature = st.slider('Temperature (°C)', min_value=10.0, max_value=100.0, step=0.1)
+exhaust_vacuum = st.slider('Exhaust Vacuum (cm Hg)', min_value=20.0, max_value=100.0, step=0.1)
+amb_pressure = st.slider('Ambient Pressure (mm Hg)', min_value=50.0, max_value=1033.0, step=0.1)
+r_humidity = st.slider('Relative Humidity (%)', min_value=20.0, max_value=100.0, step=0.1)
 
-# Button to predict
-if st.button("Predict Energy Production"):
+# When the button is clicked, predict the energy production
+if st.button('Predict Energy Production'):
     try:
-        # Prepare input for prediction
-        input_features = [temperature, exhaust_vacuum, amb_pressure, r_humidity]
+        # Prepare input data as a DataFrame
+        input_data = pd.DataFrame({
+            'temperature': [temperature],
+            'exhaust_vacuum': [exhaust_vacuum],
+            'amb_pressure': [amb_pressure],
+            'r_humidity': [r_humidity]
+        })
 
-        # Make prediction using the predict pipeline
-        prediction = predict_pipeline.predict(input_features)
+        # Use the PredictPipeline to make predictions
+        prediction = predict_pipeline.predict(input_data)[0]
+        
+        # Display the prediction
+        st.success(f'The predicted energy production is: {prediction:.2f} MW')
 
-        # Display result
-        st.success(f"Predicted Energy Production: {prediction:.2f}")
     except Exception as e:
-        st.error(f"An error occurred during prediction: {e}")
+        st.error(f"Error during prediction: {e}")
