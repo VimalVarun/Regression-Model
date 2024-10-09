@@ -6,17 +6,15 @@ from dataclasses import dataclass
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline 
+from sklearn.pipeline import Pipeline
+import pickle
+
 from src.exceptions import CustomException
 from src.logger import logging
 
-from src.utils import save_object
-
-
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path = os.path.join("artifacts", "Preprocessor.pxl")  # Corrected the typo
-
+    preprocessor_obj_file_path = os.path.join("artifacts", "preprocessor.pkl")  # Saving as preprocessor.pkl
 
 class DataTransformation:
     def __init__(self):
@@ -24,22 +22,25 @@ class DataTransformation:
 
     def get_data_transformation_object(self):
         '''
-        This function is responsible for data transformation
+        This function creates the full preprocessing object (pipeline) for data transformation.
         '''
         try:
-            numerical_columns = ['temperature', 'exhaust_vacuum', 'amb_pressure', 'r_humidity']  # Corrected list structure
+            # Defining numerical columns for preprocessing
+            numerical_columns = ['temperature', 'exhaust_vacuum', 'amb_pressure', 'r_humidity']
 
-            num_pipeline = Pipeline(  # Corrected the spelling for Pipeline
+            # Creating a pipeline for numerical features: Imputation + Scaling
+            num_pipeline = Pipeline(
                 steps=[
-                    ("imputer", SimpleImputer(strategy="median")),  # Corrected the spelling of "strategy"
+                    ("imputer", SimpleImputer(strategy="median")),
                     ("scaler", StandardScaler())
                 ]
             )
 
             logging.info(f"Numerical Columns: {numerical_columns}")
 
+            # Combining all transformations in a ColumnTransformer
             preprocessor = ColumnTransformer(
-                [("num_pipeline", num_pipeline, numerical_columns)]  # Corrected pipeline name
+                [("num_pipeline", num_pipeline, numerical_columns)]
             )
 
             return preprocessor
@@ -47,46 +48,42 @@ class DataTransformation:
         except Exception as e:
             raise CustomException(e, sys)
 
-    def initiate_data_transformation(self, train_path, test_path):  # Corrected indentation
+    def initiate_data_transformation(self, train_path, test_path):
         try:
+            # Reading train and test data
             train_df = pd.read_csv(train_path)
             test_df = pd.read_csv(test_path)
 
-            logging.info("Read train and test data completed")
+            logging.info("Read train and test data successfully.")
 
-            logging.info("Obtaining preprocessing object")
-
+            logging.info("Obtaining preprocessing object.")
             preprocessing_obj = self.get_data_transformation_object()
 
             target_column_name = "energy_production"
             numerical_columns = ['temperature', 'exhaust_vacuum', 'amb_pressure', 'r_humidity']
 
+            # Splitting input and target features for train and test
             input_feature_train_df = train_df.drop(columns=[target_column_name], axis=1)
             target_feature_train_df = train_df[target_column_name]
 
             input_feature_test_df = test_df.drop(columns=[target_column_name], axis=1)
             target_feature_test_df = test_df[target_column_name]
 
-            logging.info(f'Applying preprocessing object on training dataframe and testing dataframe')
-
+            # Applying the preprocessor to the data
             input_feature_train_arr = preprocessing_obj.fit_transform(input_feature_train_df)
             input_feature_test_arr = preprocessing_obj.transform(input_feature_test_df)
 
+            # Combining input and target features into final arrays
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
 
-            logging.info(f"Saved the preprocessing Object.")
+            logging.info(f"Saving the preprocessing object as preprocessor.pkl.")
 
-            save_object(
-                file_path=self.data_transformation_config.preprocessor_obj_file_path,  # Corrected the typo
-                obj=preprocessing_obj
-            )
+            # Saving the preprocessing object (full pipeline)
+            with open(self.data_transformation_config.preprocessor_obj_file_path, 'wb') as file_obj:
+                pickle.dump(preprocessing_obj, file_obj)
 
-            return (
-                train_arr,
-                test_arr,
-                self.data_transformation_config.preprocessor_obj_file_path,
-            )
+            return train_arr, test_arr, self.data_transformation_config.preprocessor_obj_file_path
 
         except Exception as e:
             raise CustomException(e, sys)
