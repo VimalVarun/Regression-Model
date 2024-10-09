@@ -1,27 +1,22 @@
-import joblib
-import numpy as np
+import os
+import sys
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from src.exceptions import CustomException
+from src.utils import load_object
 
 
 class PredictPipeline:
-    def __init__(self, model_path, scaler_path=None):
-        # Load the model and scaler if provided
-        self.model = joblib.load(model_path)
-        if scaler_path:
-            self.scaler = joblib.load(scaler_path)
-        else:
-            self.scaler = None
+    def __init__(self):
+        self.model_path = "artifacts/model.pkl"
+        self.preprocessor_path = "artifacts/preprocessor.pkl"
 
     def predict(self, features):
-        # Convert the features to a DataFrame if necessary
-        if isinstance(features, list):
-            features = np.array(features).reshape(1, -1)
-
-        # If a scaler is used, apply scaling to the input features
-        if self.scaler:
-            features = self.scaler.transform(features)
-
-        # Make a prediction
-        prediction = self.model.predict(features)
-        return prediction[0]
+        try:
+            model = load_object(self.model_path)
+            preprocessor = load_object(self.preprocessor_path)
+            data_scaled = preprocessor.transform(features)
+            preds = model.predict(data_scaled)
+            return preds
+        
+        except Exception as e:
+            raise CustomException(f"Prediction failed: {str(e)}", sys)
