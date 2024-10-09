@@ -10,5 +10,4 @@ statsmodels
 StandardScaler
 joblib
 streamlit
-
 -e .

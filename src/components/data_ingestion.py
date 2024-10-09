@@ -14,9 +14,6 @@ from data_transformation import DataTransformationConfig
 
 from model_trainer import ModelTrainer
 
-from data_transformation import DataTransformation
-from data_transformation import DataTransformationConfig 
-
 
 @dataclass
 class DataIngestionConfig:
